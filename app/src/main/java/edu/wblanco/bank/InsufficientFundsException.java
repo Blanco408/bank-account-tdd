@@ -25,7 +25,7 @@ public class InsufficientFundsException extends RuntimeException{
      * @param availableBalance the actual balance available at the time of the attempt
      */
     public InsufficientFundsException(double attemptedAmount, double availableBalance){
-        super(String.format("Cannot withdaraw %.2f: available balance is %.2f",attemptedAmount, availableBalance));
+        super(String.format("Cannot withdraw %.2f: available balance is %.2f",attemptedAmount, availableBalance));
         this.attemptedAmount = attemptedAmount;
         this.availableBalance = availableBalance;
     }
