@@ -11,13 +11,20 @@
 package edu.wblanco.bank;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.Mock;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,30 +94,126 @@ class BankAccountTest{
         }
     }
 
-    @Nested
-    @DisplayName("when withdrawing")
-    class Withdrawls{
+@Nested
+@DisplayName("when withdrawing")
+class Withdrawals {
 
-        @Test
-        @DisplayName("decrease the balance when withdraw")
-        void balanceDecrease(){
-            account.withdraw(200.00);
-            assertEquals(300.00, account.getBalance());
-        }
-
-        @Test
-        @DisplayName("throw InsuffiencentFund")
-        void throwInsufficientFundsExceptionForOverDraw(){
-            assertThrows(InsufficientFundsException.class, () -> account.withdraw(INITIAL_BALANCE + 1));
-        }
-
-        @Test
-        @DisplayName("throw IllegalArgumentException")
-        void rejectNegativeWithdraw(){
-            assertThrows(IllegalArgumentException.class, () -> {
-                account.withdraw(-1.00);
-            });
-        }
+    @Test
+    @DisplayName("decreases the balance by the withdrawn amount")
+    void decreasesBalanceByWithdrawnAmount() {
+        account.withdraw(200.00);
+        assertEquals(300.00, account.getBalance());
     }
 
+    @Test
+    @DisplayName("throws InsufficientFundsException when amount exceeds balance")
+    void throwsInsufficientFundsExceptionWhenOverdrawn() {
+        assertThrows(InsufficientFundsException.class,
+            () -> account.withdraw(INITIAL_BALANCE + 1));
+    }
+
+    @Test
+    @DisplayName("does not change the balance when an overdraft is attempted")
+    void doesNotModifyBalanceOnFailedWithdrawal() {
+        try {
+            account.withdraw(INITIAL_BALANCE + 1);
+        } catch (InsufficientFundsException ignored) {}
+        assertEquals(INITIAL_BALANCE, account.getBalance());
+    }
+
+    @Test
+    @DisplayName("throws IllegalArgumentException when withdrawal amount is negative")
+    void rejectsNegativeWithdrawal() {
+        assertThrows(IllegalArgumentException.class, () -> account.withdraw(-10.00));
+    }
+}
+
+@Nested
+@DisplayName("when transferring funds")
+class Transfers {
+
+    private BankAccount destinationAccount;
+
+    @BeforeEach
+    void createDestinationAccount() {
+        destinationAccount = new BankAccount("ACC-999", 0.00);
+    }
+
+    @Test
+    @DisplayName("decreases source balance and increases destination balance by transfer amount")
+    void movesMoneyBetweenAccounts() {
+        account.transfer(100.00, destinationAccount);
+
+        assertEquals(400.00, account.getBalance());
+        assertEquals(100.00, destinationAccount.getBalance());
+    }
+
+    @Test
+    @DisplayName("leaves both accounts unchanged when source has insufficient funds")
+    void leavesAccountsUnchangedOnFailedTransfer() {
+        assertThrows(InsufficientFundsException.class,
+            () -> account.transfer(INITIAL_BALANCE + 1, destinationAccount));
+
+        assertEquals(INITIAL_BALANCE, account.getBalance());
+        assertEquals(0.00, destinationAccount.getBalance());
+    }
+}
+  @Nested
+@DisplayName("hasBalance()")
+class HasBalance {
+
+    @Test
+    @DisplayName("returns true when balance is greater than zero")
+    void returnsTrueWhenBalanceIsPositive() {
+        assertTrue(account.hasBalance());
+    }
+
+    @Test
+    @DisplayName("returns false when balance is zero")
+    void returnsFalseWhenBalanceIsZero() {
+        BankAccount emptyAccount = new BankAccount("ACC-000", 0.00);
+        assertFalse(emptyAccount.hasBalance());
+    }
+}
+
+@Nested
+@DisplayName("transaction logging")
+class Logging {
+
+    private BankAccount loggedAccount;
+
+    @BeforeEach
+    void createAccountWithLogger() {
+        loggedAccount = new BankAccount(ACCOUNT_ID, INITIAL_BALANCE, mockLogger);
+    }
+
+    @Test
+    @DisplayName("calls logger at least once after a deposit")
+    void invokesLoggerOnDeposit() {
+        loggedAccount.deposit(50.00);
+        verify(mockLogger, atLeastOnce()).log(anyString(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    @DisplayName("calls logger at least once after a withdrawal")
+    void invokesLoggerOnWithdrawal() {
+        loggedAccount.withdraw(50.00);
+        verify(mockLogger, atLeastOnce()).log(anyString(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    @DisplayName("does not call logger when no transaction occurs")
+    void doesNotInvokeLoggerWithoutTransaction() {
+        verifyNoInteractions(mockLogger);
+    }
+
+    @Test
+    @DisplayName("does not call logger when a withdrawal fails")
+    void doesNotInvokeLoggerOnFailedWithdrawal() {
+        try {
+            loggedAccount.withdraw(INITIAL_BALANCE + 1);
+        } catch (InsufficientFundsException ignored) {}
+        verifyNoInteractions(mockLogger);
+    }
+}
 }
