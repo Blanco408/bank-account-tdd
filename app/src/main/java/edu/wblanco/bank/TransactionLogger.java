@@ -19,4 +19,5 @@ public interface TransactionLogger{
    * @param balance the account balance after the transaction completed 
    */
     void log(String type, double amount, double balance);
+    
 }

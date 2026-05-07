@@ -60,13 +60,30 @@ class BankAccountTest{
         }
         
         @Test
-        @DisplayName("accepts zero ad a valid initial balance")
+        @DisplayName("accepts zero as a valid initial balance")
         void acceptsZeroInitalBalance(){
             BankAccount emptyAccount = new BankAccount("AAC-003",0.00);
             assertEquals(0.00, emptyAccount.getBalance());
         }
     }
+    
+    @Nested
+    @DisplayName("when depositing ")
+    class Deposits {
+
+        @Test
+        @DisplayName("increase the balance for the deposited amout")
+        void balanceIncrease(){
+            account.deposit(100.00);
+            assertEquals(600.00, account.getBalance());
+        }
+
+        @Test
+        @DisplayName("throws IllegalArgumentException when deposit amount is negative")
+        void rejectNegativeDeposit(){
+            assertThrows(IllegalArgumentException.class, () -> account.deposit(-50.00));
+        }
 
 
-
+    }
 }
