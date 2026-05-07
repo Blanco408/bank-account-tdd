@@ -81,9 +81,36 @@ class BankAccountTest{
         @Test
         @DisplayName("throws IllegalArgumentException when deposit amount is negative")
         void rejectNegativeDeposit(){
-            assertThrows(IllegalArgumentException.class, () -> account.deposit(-50.00));
+            assertThrows(IllegalArgumentException.class, () -> {
+                account.deposit(-50.00);
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("when withdrawing")
+    class Withdrawls{
+
+        @Test
+        @DisplayName("decrease the balance when withdraw")
+        void balanceDecrease(){
+            account.withdraw(200.00);
+            assertEquals(300.00, account.getBalance());
         }
 
+        @Test
+        @DisplayName("throw InsuffiencentFund")
+        void throwInsufficientFundsExceptionForOverDraw(){
+            assertThrows(InsufficientFundsException.class, () -> account.withdraw(INITIAL_BALANCE + 1));
+        }
 
+        @Test
+        @DisplayName("throw IllegalArgumentException")
+        void rejectNegativeWithdraw(){
+            assertThrows(IllegalArgumentException.class, () -> {
+                account.withdraw(-1.00);
+            });
+        }
     }
+
 }
